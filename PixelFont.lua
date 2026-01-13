@@ -7,17 +7,13 @@
 local function PixelFont()
 	-- Define descriptive attributes of the custom extension that are displayed on the Tracker settings
 	local self = {}
-	self.version = "1.0"
+	self.version = "1.1"
 	self.name = "PixelFont"
 	self.author = "Leopardly"
 	self.description = "A font rendering replacement, using a handdrawn pixel font. Built for Linux users with font issues :)"
 	self.github = "Leopardly/PixelFontExtension" -- Replace "MyUsername" and "ExtensionRepo" to match your GitHub repo url, if any
 	self.url = string.format("https://github.com/%s", self.github or "") -- Remove this attribute if no host website available for this extension
 
-	-- Executed when the user clicks the "Check for Updates" button while viewing the extension details within the Tracker's UI
-	-- The existence of this function will allow the Tracker to automatically update & install your extension if an update is available
-	-- Your extension needs to define the `self.github` and `self.url` value in order for this auto-update to work
-	-- Returns [true, downloadUrl] if an update is available (downloadUrl auto opens in browser for user); otherwise returns [false, downloadUrl]
 	function self.checkForUpdates()
 		-- Update the pattern below to match your version. You can check what this looks like by visiting the latest release url on your repo
 		local versionResponsePattern = '"tag_name":%s+"%w+(%d+%.%d+)"' -- matches "1.0" in "tag_name": "v1.0"
@@ -31,8 +27,8 @@ local function PixelFont()
 	function self.startup()
 		self.oldRef1 = Drawing.drawText
     self.oldRef2 = Utils.getMovesLearnedHeader
-    Drawing.drawText = replaceDrawingText
-    Utils.getMovesLearnedHeader = replaceUtilSpacing
+    Drawing.drawText = self.replaceDrawingText
+    Utils.getMovesLearnedHeader = self.replaceUtilSpacing
 	end 
 
 	function self.unload()
@@ -40,67 +36,36 @@ local function PixelFont()
     Utils.getMovesLearnedHeader = self.oldRef2
 	end
 
-  function replaceDrawingText(x, y, text, color, shadowcolor, size, family, style)
-      if Utils.isNilOrEmpty(text) then return end
-      --Font size 5 is only used for + and - on Natures
-      if size == 5 then
-          if string.find(text, "+") then
-              Drawing.drawImageAsPixels({{0,1,0},{1,1,1},{0,1,0}},x, y, color, nil)
-          end
-          if string.find(text,"-") then
-              Drawing.drawImageAsPixels({{1,1,1}},x, y+1, color, nil)
-          end
-          return
-      end
-      --HEADERS just print regular size but shuffled in and down a bit
-      if size == 15 then
-          x = x+3
-          y = y+3
-      end
-      --Actual printing
-      local xoffset = 0
+  function self.replaceDrawingText(x, y, text, color, shadowcolor, size, family, style)
+    if Utils.isNilOrEmpty(text) then return end
+    --Font size 5 is only used for + and - on Natures so simply check text and draw approprite glyph
+    if size == 5 then
+        if string.find(text, "+") then
+            Drawing.drawImageAsPixels({{0,1,0},{1,1,1},{0,1,0}},x, y, color, nil)
+        end
+        if string.find(text,"-") then
+            Drawing.drawImageAsPixels({{1,1,1}},x, y+1, color, nil)
+        end
+        return
+    end
+    --HEADERS just print regular size but shuffled in and down a bit
+    if size == 15 then
+        x = x+3
+        y = y+3
+    end
+    --Actual printing
+    local xoffset = 0
     for c in tostring(text):gmatch(utf8.charpattern) do
       Drawing.drawImageAsPixels(self.PixelFont[c],x+xoffset+2,y+2,color,nil)
       xoffset = xoffset + Constants.charWidth(c) + 1
     end
   end
 
-  --Have to replace this one Util method as there appears to be an off by one error either in my font size or in Linux-land
+  --Have to supercede this one Util method as there appears to be an off by one error either in my font size or in Linux-land
   --May have to query OS in the future if people wanna use/test this on Windows
-  function replaceUtilSpacing(pokemonID, level)
-      if not PokemonData.isValid(pokemonID) or level == nil then
-          return Resources.TrackerScreen.HeaderMoves, nil, nil
-      end
-
-      local movesLearned = 0
-      local nextMoveLevel = 0
-      local foundNextMove = false
-
-      local allMoveLevels = PokemonData.Pokemon[pokemonID].movelvls[GameSettings.versiongroup]
-      for _, lv in pairs(allMoveLevels) do
-          if lv <= level then
-              movesLearned = movesLearned + 1
-          elseif not foundNextMove then
-              nextMoveLevel = lv
-              foundNextMove = true
-          end
-      end
-
-      local movesText = Resources.TrackerScreen.HeaderMoves
-      -- Don't show the asterisk on your own Pokemon
-      if not Battle.isViewingOwn and #Tracker.getMoves(pokemonID) > 4 then
-          movesText = movesText .. "*"
-      end
-
-      local header = string.format("%s %s/%s", movesText, movesLearned, #allMoveLevels)
-      if foundNextMove then
-          header = header .. " ("
-          local nextMoveSpacing = Utils.calcWordPixelLength(header)
-          header = header .. nextMoveLevel .. ")"
-          return header, nextMoveLevel, nextMoveSpacing+1
-      else
-          return header, nil, nil
-      end
+  function self.replaceUtilSpacing(pokemonID, level)
+      local h , a, b = self.oldRef2(pokemonID, level)
+      return h, a, b+1
   end
 
 
