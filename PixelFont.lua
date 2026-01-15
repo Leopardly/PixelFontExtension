@@ -7,7 +7,7 @@
 local function PixelFont()
 	-- Define descriptive attributes of the custom extension that are displayed on the Tracker settings
 	local self = {}
-	self.version = "1.1"
+	self.version = "1.2"
 	self.name = "PixelFont"
 	self.author = "Leopardly"
 	self.description = "A font rendering replacement, using a handdrawn pixel font. Built for Linux users with font issues :)"
