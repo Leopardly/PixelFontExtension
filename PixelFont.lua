@@ -64,8 +64,12 @@ local function PixelFont()
   --Have to supercede this one Util method as there appears to be an off by one error either in my font size or in Linux-land
   --May have to query OS in the future if people wanna use/test this on Windows
   function self.replaceUtilSpacing(pokemonID, level)
-      local h , a, b = self.oldRef2(pokemonID, level)
-      return h, a, b+1
+      local h, a, b = self.oldRef2(pokemonID, level)
+      if not b then
+        return h, a, b
+      else
+        return h, a,b+1
+      end
   end
 
 
