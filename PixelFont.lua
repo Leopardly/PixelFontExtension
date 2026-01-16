@@ -7,7 +7,7 @@
 local function PixelFont()
 	-- Define descriptive attributes of the custom extension that are displayed on the Tracker settings
 	local self = {}
-	self.version = "1.2"
+	self.version = "1.3"
 	self.name = "PixelFont"
 	self.author = "Leopardly"
 	self.description = "A font rendering replacement, using a handdrawn pixel font. Built for Linux users with font issues :)"
@@ -56,19 +56,46 @@ local function PixelFont()
     --Actual printing
     local xoffset = 0
     for c in tostring(text):gmatch(utf8.charpattern) do
-      Drawing.drawImageAsPixels(self.PixelFont[c],x+xoffset+2,y+2,color,nil)
+      Drawing.drawImageAsPixels(self.PixelFont[c],x+xoffset+1,y+2,color,nil)
       xoffset = xoffset + Constants.charWidth(c) + 1
     end
   end
 
-  --Have to supercede this one Util method as there appears to be an off by one error either in my font size or in Linux-land
-  --May have to query OS in the future if people wanna use/test this on Windows
+  --Trying to simply call the old method and do the +1 after was causing a strange issue 
+  --so I have reverted this. And now just replicate the logic, seems stable after revert
   function self.replaceUtilSpacing(pokemonID, level)
-      local h, a, b = self.oldRef2(pokemonID, level)
-      if not b then
-        return h, a, b
+      if not PokemonData.isValid(pokemonID) or level == nil then
+          return Resources.TrackerScreen.HeaderMoves, nil, nil
+      end
+
+      local movesLearned = 0
+      local nextMoveLevel = 0
+      local foundNextMove = false
+
+      local allMoveLevels = PokemonData.Pokemon[pokemonID].movelvls[GameSettings.versiongroup]
+      for _, lv in pairs(allMoveLevels) do
+          if lv <= level then
+              movesLearned = movesLearned + 1
+          elseif not foundNextMove then
+              nextMoveLevel = lv
+              foundNextMove = true
+          end
+      end
+
+      local movesText = Resources.TrackerScreen.HeaderMoves
+      -- Don't show the asterisk on your own Pokemon
+      if not Battle.isViewingOwn and #Tracker.getMoves(pokemonID) > 4 then
+          movesText = movesText .. "*"
+      end
+
+      local header = string.format("%s %s/%s", movesText, movesLearned, #allMoveLevels)
+      if foundNextMove then
+          header = header .. " ("
+          local nextMoveSpacing = Utils.calcWordPixelLength(header)
+          header = header .. nextMoveLevel .. ")"
+          return header, nextMoveLevel, (nextMoveSpacing+1)
       else
-        return h, a,b+1
+          return header, nil, nil
       end
   end
 
