@@ -61,7 +61,7 @@ local function PixelFont()
         yoffset = yoffset + 1
         xoffset = 0
       else
-        Drawing.drawImageAsPixels(self.PixelFont[c],x+xoffset+1,y+2,color,nil)
+        Drawing.drawImageAsPixels(self.PixelFont[c],x+xoffset+1,y+2+(yoffset*8),color,nil)
         xoffset = xoffset + Constants.charWidth(c) + 1
       end
     end
