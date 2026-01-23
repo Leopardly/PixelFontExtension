@@ -7,7 +7,7 @@
 local function PixelFont()
 	-- Define descriptive attributes of the custom extension that are displayed on the Tracker settings
 	local self = {}
-	self.version = "1.3"
+	self.version = "1.4"
 	self.name = "PixelFont"
 	self.author = "Leopardly"
 	self.description = "A font rendering replacement, using a handdrawn pixel font. Built for Linux users with font issues :)"
@@ -55,13 +55,19 @@ local function PixelFont()
     end
     --Actual printing
     local xoffset = 0
+    local yoffset = 0
     for c in tostring(text):gmatch(utf8.charpattern) do
-      Drawing.drawImageAsPixels(self.PixelFont[c],x+xoffset+1,y+2,color,nil)
-      xoffset = xoffset + Constants.charWidth(c) + 1
+      if c == utf8.char(10) then --check for \n and create new lines if found
+        yoffset = yoffset + 1
+        xoffset = 0
+      else
+        Drawing.drawImageAsPixels(self.PixelFont[c],x+xoffset+1,y+2+(yoffset*8),color,nil)
+        xoffset = xoffset + Constants.charWidth(c) + 1
+      end
     end
   end
 
-  --Trying to simply call the old method and do the +1 after was causing a strange issue 
+  --Trying to simply call the old method and amend was not working correct
   --so I have reverted this. And now just replicate the logic, seems stable after revert
   function self.replaceUtilSpacing(pokemonID, level)
       if not PokemonData.isValid(pokemonID) or level == nil then
@@ -99,7 +105,7 @@ local function PixelFont()
       end
   end
 
-
+-- This is the font glyphs
   self.PixelFont = {
     [" "] = {
       {0,},
@@ -682,8 +688,8 @@ local function PixelFont()
     ["q"] = {
       {0,0,0,},
       {0,0,0,},
-      {0,0,0,},
-      {0,1,1,},
+      {0,1,0,},
+      {1,0,1,},
       {1,0,1,},
       {1,0,1,},
       {0,1,1,},
